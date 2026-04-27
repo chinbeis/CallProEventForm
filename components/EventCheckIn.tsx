@@ -22,19 +22,13 @@ export default function EventCheckin({ initialDb }: EventCheckinProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const clearFeedback = useCallback((nextStatus: Status) => {
-    const timeout = nextStatus === "success" ? 8000 : nextStatus === "already" ? 2500 : 2000;
-
-    window.setTimeout(() => {
-      setStatus(null);
-      setCode("");
-      setErrMsg("");
-      if (nextStatus === "success") {
-        setFoundOrgName("");
-        setFoundName("");
-      }
-      inputRef.current?.focus();
-    }, timeout);
+  const dismiss = useCallback(() => {
+    setStatus(null);
+    setCode("");
+    setErrMsg("");
+    setFoundOrgName("");
+    setFoundName("");
+    inputRef.current?.focus();
   }, []);
 
   const handleSubmit = useCallback(async () => {
@@ -48,11 +42,10 @@ export default function EventCheckin({ initialDb }: EventCheckinProps) {
       setErrMsg(result.errMsg);
       setFoundOrgName(result.foundOrgName);
       setFoundName(result.foundName);
-      clearFeedback(result.status);
     } finally {
       setIsSubmitting(false);
     }
-  }, [clearFeedback, code, isSubmitting]);
+  }, [code, isSubmitting]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -73,10 +66,15 @@ export default function EventCheckin({ initialDb }: EventCheckinProps) {
     <div className="relative overflow-hidden bg-[hsl(216,100%,7%)] font-GIP" style={{ width: '1080px', height: '1920px' }}>
       <ParticleBG />
 
-      {/* Background */}
       <Image src="/background.png" alt="" fill className="pointer-events-none z-0 object-cover" />
 
-      <StatusOverlay status={status} foundOrgName={foundOrgName} foundName={foundName} errMsg={errMsg} />
+      <StatusOverlay
+        status={status}
+        foundOrgName={foundOrgName}
+        foundName={foundName}
+        errMsg={errMsg}
+        onDismiss={dismiss}
+      />
 
       <div className="relative z-10 flex h-full flex-col items-center justify-start pt-[100px]" style={{ height: '1920px' }}>
         {/* CallPro × Rakuten Viber logo */}

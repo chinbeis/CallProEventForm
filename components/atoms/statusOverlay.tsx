@@ -1,21 +1,44 @@
+import { useState } from "react";
 import type { StatusOverlayProps } from "@/lib/types";
 
-export function StatusOverlay({ status, foundOrgName, foundName, errMsg }: StatusOverlayProps) {
+export function StatusOverlay({ status, foundOrgName, foundName, errMsg, onDismiss }: StatusOverlayProps) {
+  const [dismissing, setDismissing] = useState(false);
+
   if (!status) return null;
+
+  const handleDismiss = () => {
+    if (dismissing) return;
+    setDismissing(true);
+    setTimeout(() => {
+      onDismiss();
+      setDismissing(false);
+    }, 400);
+  };
 
   if (status === "success") {
     return (
       <div
-        className="fixed inset-0 z-[999] flex flex-col items-center justify-center animate-fade-in"
+        onClick={handleDismiss}
+        className="fixed inset-0 z-[999] flex flex-col items-center justify-center cursor-pointer"
         style={{
           background:
             "linear-gradient(160deg, rgba(0,55,180,0.96) 0%, rgba(0,30,100,0.98) 100%)",
           backdropFilter: "blur(20px) saturate(180%)",
+          animation: dismissing
+            ? "fadeScaleOut 0.4s ease forwards"
+            : "fadeIn 0.3s ease forwards",
         }}
       >
         {/* Shift everything slightly above center */}
-        <div className="flex flex-col items-center -mt-24">
-
+        <div
+          className="flex flex-col items-center -mt-24"
+          style={{
+            animation: dismissing
+              ? "slideDownFade 0.35s ease forwards"
+              : "slideUpFade 0.4s 0.1s ease forwards",
+            opacity: 0,
+          }}
+        >
           {/* CENTERED ANIMATION CONTAINER */}
           <div className="relative flex items-center justify-center w-[500px] h-[500px]">
             
@@ -57,14 +80,14 @@ export function StatusOverlay({ status, foundOrgName, foundName, errMsg }: Statu
             </div>
           </div>
 
-          {/* Text — pulled up closer to the circle */}
+          {/* Text */}
           <div className="flex flex-col items-center -mt-16">
-            <p className="text-white text-4xl font-extrabold tracking-tight animate-fade-in [animation-delay:0.4s]">
+            <p className="text-white text-4xl font-extrabold tracking-tight">
               Тавтай морил! 🎉
             </p>
 
             {foundOrgName && (
-              <div className="mt-5 text-center animate-fade-in [animation-delay:0.5s]">
+              <div className="mt-5 text-center">
                 <p className="text-xs uppercase tracking-[0.35em] text-primary-200/70 mb-1">
                   Байгууллага
                 </p>
@@ -88,14 +111,14 @@ export function StatusOverlay({ status, foundOrgName, foundName, errMsg }: Statu
             )}
 
             <p
-              className={`text-4xl md:text-5xl font-extrabold animate-fade-in [animation-delay:0.6s]${foundOrgName ? " mt-2" : " mt-4"}`}
+              className={`text-4xl md:text-5xl font-extrabold${foundOrgName ? " mt-2" : " mt-4"}`}
               style={{ color: "#ffd580" }}
             >
               {foundName}
             </p>
 
             <div
-              className="mt-6 px-6 py-2.5 rounded-full text-sm font-semibold text-white/80 animate-fade-in [animation-delay:0.65s]"
+              className="mt-6 px-6 py-2.5 rounded-full text-sm font-semibold text-white/80"
               style={{
                 background: "rgba(255,255,255,0.08)",
                 border: "1px solid rgba(255,255,255,0.15)",
@@ -106,6 +129,25 @@ export function StatusOverlay({ status, foundOrgName, foundName, errMsg }: Statu
             </div>
           </div>
         </div>
+
+        <style>{`
+          @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+          }
+          @keyframes fadeScaleOut {
+            from { opacity: 1; transform: scale(1); }
+            to { opacity: 0; transform: scale(1.04); }
+          }
+          @keyframes slideUpFade {
+            from { opacity: 0; transform: translateY(24px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+          @keyframes slideDownFade {
+            from { opacity: 1; transform: translateY(0); }
+            to { opacity: 0; transform: translateY(16px); }
+          }
+        `}</style>
       </div>
     );
   }
@@ -113,11 +155,15 @@ export function StatusOverlay({ status, foundOrgName, foundName, errMsg }: Statu
   // error / already
   return (
     <div
-      className="fixed inset-0 z-[999] flex items-center justify-center animate-fade-in"
+      onClick={handleDismiss}
+      className="fixed inset-0 z-[999] flex items-center justify-center cursor-pointer"
       style={{
         background:
           "linear-gradient(160deg, rgba(15,20,60,0.97) 0%, rgba(0,10,40,0.98) 100%)",
         backdropFilter: "blur(20px) saturate(180%)",
+        animation: dismissing
+          ? "fadeScaleOut 0.4s ease forwards"
+          : "fadeIn 0.3s ease forwards",
       }}
     >
       <div
@@ -126,6 +172,9 @@ export function StatusOverlay({ status, foundOrgName, foundName, errMsg }: Statu
           background: "linear-gradient(135deg, #c0392b, #e74c3c)",
           boxShadow:
             "0 0 0 12px rgba(192,57,43,0.2), 0 0 0 28px rgba(192,57,43,0.1), 0 0 70px rgba(192,57,43,0.5)",
+          animation: dismissing
+            ? "slideDownFade 0.35s ease forwards"
+            : "shake-in 0.4s ease forwards",
         }}
       >
         <svg
@@ -142,6 +191,21 @@ export function StatusOverlay({ status, foundOrgName, foundName, errMsg }: Statu
         </svg>
         <span className="text-white mt-3 text-sm font-bold">{errMsg}</span>
       </div>
+
+      <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes fadeScaleOut {
+          from { opacity: 1; transform: scale(1); }
+          to { opacity: 0; transform: scale(1.04); }
+        }
+        @keyframes slideDownFade {
+          from { opacity: 1; transform: translateY(0) scale(1); }
+          to { opacity: 0; transform: translateY(16px) scale(0.92); }
+        }
+      `}</style>
     </div>
   );
 }

@@ -15,12 +15,13 @@ export interface DB {
 
 export type Status = null | "success" | "error" | "already";
 
-export interface StatusOverlayProps {
+export type StatusOverlayProps = {
   status: Status;
   foundOrgName: string;
   foundName: string;
   errMsg: string;
-}
+  onDismiss: () => void;
+};
 
 export interface EventCheckinProps {
   initialDb: DB;

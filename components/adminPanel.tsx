@@ -1,0 +1,335 @@
+"use client";
+
+import { useCallback, useMemo, useState } from "react";
+import {
+  addAttendeeAction,
+  addBulkAttendeesAction,
+  removeAttendeeAction,
+  resetAttendeesAction,
+  toggleAttendeeCheckinAction,
+} from "@/app/actions/attendees";
+import { logoutAction } from "@/app/admin/login/actions";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Separator } from "@/components/ui/separator";
+import { Card, CardContent } from "@/components/ui/card";
+import { StatCard } from "@/components/atoms/statCard";
+import { cn } from "@/lib/utils";
+import { getStaggerDelay } from "@/lib/helpers";
+import { TABS } from "@/lib/consts";
+import type { AdminPanelProps, DB } from "@/lib/types";
+
+export function AdminPanel({ initialDb }: AdminPanelProps) {
+  const [db, setDb] = useState<DB>(initialDb);
+  const [orgName, setOrgName] = useState("");
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [bulk, setBulk] = useState("");
+  const [newCode, setNewCode] = useState<string | null>(null);
+  const [isWorking, setIsWorking] = useState(false);
+
+  const total = db.attendees.length;
+  const checkedIn = useMemo(() => db.attendees.filter((attendee) => attendee.checkedIn).length, [db.attendees]);
+  const pending = total - checkedIn;
+
+  const updateDb = useCallback((nextDb: DB) => {
+    setDb(nextDb);
+  }, []);
+
+  const addOne = useCallback(async () => {
+    const trimmedName = name.trim();
+    if (!trimmedName || isWorking) return;
+
+    setIsWorking(true);
+    try {
+      const result = await addAttendeeAction({ orgName: orgName.trim(), name: trimmedName, phone: phone.trim() });
+      updateDb(result.db);
+      setOrgName("");
+      setName("");
+      setPhone("");
+      setNewCode(result.code ?? null);
+      if (result.code) {
+        window.setTimeout(() => setNewCode(null), 3000);
+      }
+    } finally {
+      setIsWorking(false);
+    }
+  }, [orgName, name, phone, isWorking, updateDb]);
+
+  const addBulk = useCallback(async () => {
+    if (!bulk.trim() || isWorking) return;
+
+    setIsWorking(true);
+    try {
+      const result = await addBulkAttendeesAction(bulk);
+      updateDb(result.db);
+      setBulk("");
+    } finally {
+      setIsWorking(false);
+    }
+  }, [bulk, isWorking, updateDb]);
+
+  const toggleCheckin = useCallback(
+    async (code: string) => {
+      if (isWorking) return;
+
+      setIsWorking(true);
+      try {
+        const result = await toggleAttendeeCheckinAction(code);
+        updateDb(result.db);
+      } finally {
+        setIsWorking(false);
+      }
+    },
+    [isWorking, updateDb]
+  );
+
+  const removeAttendee = useCallback(
+    async (code: string) => {
+      if (isWorking) return;
+
+      setIsWorking(true);
+      try {
+        const result = await removeAttendeeAction(code);
+        updateDb(result.db);
+      } finally {
+        setIsWorking(false);
+      }
+    },
+    [isWorking, updateDb]
+  );
+
+  const resetAll = useCallback(async () => {
+    if (isWorking || !confirm("Бүх мэдээлэл устгах уу?")) return;
+
+    setIsWorking(true);
+    try {
+      const result = await resetAttendeesAction();
+      updateDb(result.db);
+    } finally {
+      setIsWorking(false);
+    }
+  }, [isWorking, updateDb]);
+
+  return (
+    <div className="relative min-h-screen overflow-hidden bg-[#0a0f1e] font-GIP">
+      <div className="pointer-events-none fixed inset-0 z-0">
+        <div className="absolute right-0 top-0 h-[500px] w-[500px] -translate-y-1/4 translate-x-1/4 rounded-full bg-blue-600/10 blur-[120px]" />
+        <div className="absolute bottom-0 left-0 h-[400px] w-[400px] -translate-x-1/4 translate-y-1/4 rounded-full bg-blue-500/8 blur-[100px]" />
+      </div>
+
+      <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-5xl flex-col px-5 py-10 sm:px-8">
+        <header className="mb-8 flex items-center justify-between gap-4 animate-fade-in">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-400/70">
+              CallPro Admin
+            </p>
+            <h1 className="mt-0.5 text-4xl font-bold tracking-tight text-white sm:text-5xl">
+              Админ удирдлага
+            </h1>
+          </div>
+          <form action={logoutAction}>
+            <button
+              type="submit"
+              className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold text-blue-300/80 backdrop-blur-sm transition-all hover:bg-red-500/10 hover:border-red-500/20 hover:text-red-400"
+            >
+              Гарах
+            </button>
+          </form>
+        </header>
+
+        <Card className="overflow-hidden rounded-3xl border border-white/[0.08] bg-white/[0.03] shadow-2xl backdrop-blur-xl animate-slide-up">
+          <div className="h-px w-full bg-gradient-to-r from-transparent via-blue-400/40 to-transparent" />
+          <CardContent className="space-y-6 px-5 pb-7 pt-6 sm:px-7">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+              <div>
+                <h2 className="text-xl font-bold text-white sm:text-2xl">
+                  Оролцогчдын удирдлага
+                </h2>
+                <p className="mt-1 text-sm text-blue-300/60">
+                  Нийт: {total} &bull; Ирсэн: {checkedIn} &bull; Ирээгүй: {pending}
+                </p>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2.5 lg:min-w-[340px]">
+                <StatCard label="Нийт" value={total} valueColor="text-blue-300" />
+                <StatCard label="Ирсэн" value={checkedIn} valueColor="text-emerald-400" />
+                <StatCard label="Хүлээгдэж буй" value={pending} valueColor="text-amber-400" />
+              </div>
+            </div>
+
+            <Separator className="bg-white/[0.07]" />
+
+            <Tabs defaultValue="add" className="flex flex-1 flex-col">
+              <TabsList className="mb-5 w-fit gap-0.5 rounded-xl border border-white/[0.08] bg-white/[0.04] p-1">
+                {TABS.map((tab) => (
+                  <TabsTrigger
+                    key={tab.value}
+                    value={tab.value}
+                    className="rounded-lg px-4 py-2 text-sm font-medium text-white/40 transition-all data-[state=active]:bg-blue-600/30 data-[state=active]:text-white data-[state=active]:shadow-sm"
+                  >
+                    {tab.label}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+
+              <TabsContent value="add" className="space-y-4 animate-fade-in">
+                <div className="grid gap-4 md:grid-cols-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold uppercase tracking-wider text-blue-300/70">
+                      Байгууллагын нэр
+                    </Label>
+                    <Input
+                      value={orgName}
+                      onChange={(e) => setOrgName(e.target.value)}
+                      placeholder="CallPro LLC"
+                      className="border-white/[0.1] bg-white/[0.05] text-white placeholder:text-white/20 focus-visible:ring-blue-500/40"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold uppercase tracking-wider text-blue-300/70">
+                      Нэр *
+                    </Label>
+                    <Input
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="Болд Баатар"
+                      className="border-white/[0.1] bg-white/[0.05] text-white placeholder:text-white/20 focus-visible:ring-blue-500/40"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold uppercase tracking-wider text-blue-300/70">
+                      Утас
+                    </Label>
+                    <Input
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="9911-2233"
+                      className="border-white/[0.1] bg-white/[0.05] text-white placeholder:text-white/20 focus-visible:ring-blue-500/40"
+                    />
+                  </div>
+                </div>
+
+                <Button
+                  onClick={() => void addOne()}
+                  disabled={isWorking}
+                  className="w-full rounded-xl bg-blue-600 py-6 text-base font-semibold text-white shadow-lg shadow-blue-900/40 transition-all hover:-translate-y-0.5 hover:bg-blue-500 hover:shadow-blue-900/60 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isWorking ? "Түр хүлээнэ үү..." : "Оролцогч нэмэх & Код авах"}
+                </Button>
+
+                {newCode && (
+                  <div className="rounded-xl border border-blue-500/20 bg-blue-600/10 p-4 text-center animate-fade-in">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-blue-300/70">
+                      Код амжилттай үүслээ
+                    </p>
+                    <p className="mt-2 font-mono text-4xl font-bold tracking-[0.4em] text-white">
+                      {newCode}
+                    </p>
+                  </div>
+                )}
+              </TabsContent>
+
+              <TabsContent value="bulk" className="space-y-3 animate-fade-in">
+                <p className="text-xs text-white/35">
+                  Мөр бүрт:{" "}
+                  <span className="font-medium text-blue-300/70">Байгууллагын нэр, Нэр, Утас</span>{" "}
+                  (таслалаар тусгаарлана)
+                </p>
+                <Textarea
+                  value={bulk}
+                  onChange={(e) => setBulk(e.target.value)}
+                  rows={10}
+                  placeholder={"CallPro LLC, Болд Баатар, 9911-2233\nTechCo, Сараа Д, 8822-4455"}
+                  className="border-white/[0.1] bg-white/[0.05] font-mono text-sm text-white placeholder:text-white/20 focus-visible:ring-blue-500/40"
+                />
+                <Button
+                  onClick={() => void addBulk()}
+                  disabled={isWorking}
+                  className="w-full rounded-xl bg-blue-600 py-6 text-base font-semibold text-white shadow-lg shadow-blue-900/40 transition-all hover:-translate-y-0.5 hover:bg-blue-500 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isWorking ? "Түр хүлээнэ үү..." : "Бөөнөөр нэмэх"}
+                </Button>
+              </TabsContent>
+
+              <TabsContent value="list" className="animate-fade-in">
+                {db.attendees.length === 0 ? (
+                  <div className="flex items-center justify-center rounded-2xl border border-white/[0.06] bg-white/[0.02] py-16 text-sm text-white/25">
+                    Оролцогч бүртгэгдээгүй байна
+                  </div>
+                ) : (
+                  <>
+                    <div className="mb-3 flex justify-end">
+                      <button
+                        onClick={() => void resetAll()}
+                        disabled={isWorking}
+                        className="rounded-lg border border-red-500/20 px-3 py-1.5 text-xs font-semibold text-red-400/80 transition-colors hover:bg-red-500/10 hover:text-red-400 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        Бүгдийг устгах
+                      </button>
+                    </div>
+
+                    <div className="flex max-h-[50vh] flex-col gap-1.5 overflow-auto pr-1">
+                      {db.attendees.map((attendee, index) => (
+                        <div
+                          key={attendee.code}
+                          style={{ animationDelay: getStaggerDelay(index) }}
+                          className={cn(
+                            "flex items-center gap-3 rounded-xl border px-4 py-3 animate-fade-in transition-colors",
+                            attendee.checkedIn
+                              ? "border-emerald-500/20 bg-emerald-500/[0.06]"
+                              : "border-white/[0.07] bg-white/[0.03]"
+                          )}
+                        >
+                          <div
+                            className={cn(
+                              "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold text-white",
+                              attendee.checkedIn ? "bg-emerald-600" : "bg-blue-700"
+                            )}
+                          >
+                            {attendee.checkedIn ? "+" : index + 1}
+                          </div>
+
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-semibold text-white">{attendee.name}</p>
+                            <p className="truncate font-mono text-xs text-white/30">
+                              {attendee.orgName ? `${attendee.orgName} · ` : ""}{attendee.code}
+                            </p>
+                          </div>
+
+                          <button
+                            onClick={() => void toggleCheckin(attendee.code)}
+                            disabled={isWorking}
+                            className={cn(
+                              "shrink-0 rounded-lg px-3 py-1 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60",
+                              attendee.checkedIn
+                                ? "text-amber-400 hover:bg-amber-400/10"
+                                : "text-emerald-400 hover:bg-emerald-400/10"
+                            )}
+                          >
+                            {attendee.checkedIn ? "Буцаах" : "Бүртгэх"}
+                          </button>
+
+                          <button
+                            onClick={() => void removeAttendee(attendee.code)}
+                            disabled={isWorking}
+                            className="shrink-0 rounded-lg px-2 py-1 text-xs text-white/30 transition-colors hover:bg-red-500/10 hover:text-red-400 disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            x
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}

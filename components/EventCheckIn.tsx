@@ -23,7 +23,7 @@ export default function EventCheckin({ initialDb }: EventCheckinProps) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const clearFeedback = useCallback((nextStatus: Status) => {
-    const timeout = nextStatus === "success" ? 3000 : nextStatus === "already" ? 2500 : 2000;
+    const timeout = nextStatus === "success" ? 8000 : nextStatus === "already" ? 2500 : 2000;
 
     window.setTimeout(() => {
       setStatus(null);

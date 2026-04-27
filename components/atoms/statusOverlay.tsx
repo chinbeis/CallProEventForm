@@ -60,9 +60,31 @@ export function StatusOverlay({ status, foundOrgName, foundName, errMsg }: Statu
           Тавтай морил! 🎉
         </p>
         {foundOrgName && (
-          <p className="mt-3 text-lg font-bold animate-fade-in [animation-delay:0.5s] text-white">
-            {foundOrgName}
-          </p>
+          <div className="mt-4 text-center animate-fade-in [animation-delay:0.5s]">
+            <p className="text-xs uppercase tracking-[0.35em] text-primary-200/70 mb-1">
+              Байгууллага
+            </p>
+
+            <p
+              className="text-3xl md:text-4xl font-black tracking-tight"
+              style={{
+                background:
+                  "linear-gradient(90deg,#ffffff 0%, #9ed0ff 50%, #ffffff 100%)",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+                textShadow:
+                  "0 0 18px rgba(120,190,255,.45), 0 0 40px rgba(0,120,255,.25)",
+              }}
+            >
+              {foundOrgName}
+            </p>
+
+            <div className="mt-2 flex items-center justify-center gap-2 opacity-70">
+              <div className="w-8 h-px bg-primary-200/50" />
+              <div className="w-2 h-2 rounded-full bg-primary-200 animate-pulse" />
+              <div className="w-8 h-px bg-primary-200/50" />
+            </div>
+          </div>
         )}
         <p className={`text-2xl font-extrabold animate-fade-in [animation-delay:0.6s]${foundOrgName ? " mt-1" : " mt-3"}`} style={{ color: "#ffd580" }}>
           {foundName}
